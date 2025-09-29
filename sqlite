@@ -1,0 +1,74 @@
+import sqlite3
+# -------- DATABASE ----------
+def init_db():
+    conn = sqlite3.connect("lockscreen.db")  # File will be created in same folder
+    c = conn.cursor()
+    # Create users table if not exists
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            email TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+# Call it once at startup
+init_db()
+# -----------------------------
+
+def login(self):
+        username = simpledialog.askstring("Login", "Enter username:")
+        password = simpledialog.askstring("Login", "Enter password:", show="*")
+
+        if username and password:
+            conn = sqlite3.connect("lockscreen.db")
+            c = conn.cursor()
+            c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+            user = c.fetchone()
+            conn.close()
+
+            if user:
+                messagebox.showinfo("Login", f"✅ Welcome {username}!")
+            else:
+                messagebox.showwarning("Login", "❌ Invalid username or password.")
+        else:
+            messagebox.showwarning("Login", "Both fields required.")
+
+def create_account(self):
+        username = simpledialog.askstring("Create Account", "Choose a username:")
+        password = simpledialog.askstring("Create Account", "Choose a password:", show="*")
+        email = simpledialog.askstring("Create Account", "Enter your email:")
+
+        if username and password and email:
+            conn = sqlite3.connect("lockscreen.db")
+            c = conn.cursor()
+            try:
+                c.execute("INSERT INTO users (username, password, email) VALUES (?, ?, ?)", 
+                          (username, password, email))
+                conn.commit()
+                messagebox.showinfo("Account", f"✅ Account created for {username}!")
+            except sqlite3.IntegrityError:
+                messagebox.showwarning("Account", "❌ Username already exists!")
+            conn.close()
+        else:
+            messagebox.showwarning("Account", "All fields required.")
+
+def forgot_password(self):
+        email = simpledialog.askstring("Forgot Password", "Enter your email:")
+        if email:
+            conn = sqlite3.connect("lockscreen.db")
+            c = conn.cursor()
+            c.execute("SELECT username, password FROM users WHERE email=?", (email,))
+            user = c.fetchone()
+            conn.close()
+
+            if user:
+                messagebox.showinfo("Password Reset", f"✅ User: {user[0]}\nPassword: {user[1]}")
+            else:
+                messagebox.showwarning("Password Reset", "❌ Email not found.")
+        else:
+            messagebox.showwarning("Password Reset", "Email required.")
+
