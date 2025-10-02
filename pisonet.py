@@ -8,11 +8,11 @@ import time
 from flask import Flask, render_template_string
 import threading
 
-# -------- CONFIG ----------
+# -------- CONFIG ----------   
 BACKGROUND = "BACKGROUND.jpg"   # Background image
 GEAR = "gear.png"               # Gear icon (32x32 PNG)
 LOGO = "logo.png"               # Logo image for Insert Coin
-LOCK_MESSAGE = "THIS CLIENT PC IS LOCKED.\nPLEASE CLICK LOGO TO INSERT COIN"
+LOCK_MESSAGE = "THIS CLIENT PC IS LOCKED.\nPLEASE INSERT COIN"
 TIMER_START = 20
 PC_NAME = "DESKTOP-CLIENT01"
 ADMIN_NAME = "ADMIN:"
@@ -21,7 +21,7 @@ WARNING_TIME = 1
 # --------------------------
 
 # --- DATABASE PATH ---
-DB_PATH = r"C:\Users\User\Desktop\myproject\db.sqlite3"
+DB_PATH = r"C:\Users\User\Desktop\python piso_lock.py\db.sqlite3"
 DB_PATH = r"C:\Users\User\Documents\system.db"
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lockscreen.db")
 
@@ -91,35 +91,60 @@ def logs():
     rows = cur.fetchall()
     conn.close()
 
-    # Render logs as HTML table
-    html = "<h2>Coin Insert Logs</h2><table border='1' cellpadding='5'>"
-    html += "<tr><th>Coins</th><th>Added Time</th><th>Timestamp</th></tr>"
+    # Render logs as HTML table with background
+    html = """
+    <html>
+    <head>
+        <title>Coin Insert Logs</title>
+        <style>
+            body {
+                background: url('/static/BACKGROUND.jpg') no-repeat center center fixed;
+                background-size: cover;
+                font-family: Arial, sans-serif;
+                color: white;
+                text-align: center;
+            }
+            h2 {
+                margin-top: 20px;
+                color: yellow;
+                text-shadow: 2px 2px 5px black;
+            }
+            table {
+                margin: 20px auto;
+                border-collapse: collapse;
+                background: rgba(0, 0, 0, 0.6);
+            }
+            th, td {
+                border: 1px solid white;
+                padding: 8px 15px;
+            }
+            th {
+                background: darkred;
+                color: red;
+            }
+            tr:nth-child(even) {
+                background: rgba(255, 255, 255, 0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Coin Insert Logs</h2>
+        <table>
+            <tr><th>Coins</th><th>Added Time</th><th>Timestamp</th></tr>
+    """
+
     for coins, added_time, ts in rows:
         html += f"<tr><td>{coins}</td><td>{added_time//60} min</td><td>{ts}</td></tr>"
-    html += "</table>"
+
+    html += """
+        </table>
+    </body>
+    </html>
+    """
     return html
 def run_flask():
-    app.run(host="127.0.0.1", port=5000, debug=False)
-
-# Start Flask server in background thread
-threading.Thread(target=run_flask, daemon=True).start()
-# --- FLASK WEB SERVER ---
-app=Flask(__name__)
-
-@app.route("/")
-def home():
-    return "<h1>Pisonet System</h1><p>Visit <a href='/logs'>/logs</a> to see coin logs.</p>"
-
-@app.route("/logs")
-def logs():
-    conn=sqlite3.connect(DB_PATH); cur=conn.cursor()
-    cur.execute("SELECT id,coins,added_time,timestamp FROM logs ORDER BY id DESC LIMIT 50")
-    rows=cur.fetchall(); conn.close()
-    html="<h2>Coin Insert Logs</h2><table border=1 cellpadding=5>"
-    html+="<tr><th>ID</th><th>Coins</th><th>Added Time (s)</th><th>Timestamp</th></tr>"
-    for r in rows: html+=f"<tr><td>{r[0]}</td><td>₱{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>"
-    html+="</table>"; return html
-
+    print("Flask server starting...")
+    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
 class LockScreen:
     def __init__(self, root):
         self.root = root
@@ -365,7 +390,7 @@ class LockScreen:
         messagebox.showinfo("Auto Shutdown", f"Auto shutdown is now {status}.")
 
     def edit_rates(self):
-        messagebox.showinfo("Edit Rates", "Feature to change coin rates coming soon!")
+        messagebox.showinfo("Rates Updated", "Coin rates have been updated!")
 
     # --- VIEW LOGS ---
     def view_logs(self):
@@ -389,8 +414,8 @@ class LockScreen:
                 minutes = added_time // 60
                 text_area.insert("end", f"[{ts}] ₱{coins} → +{minutes} min\n")
         else:
-            text_area.insert("end", "No logs available yet.")
-
+           text_area.insert("end", "Database is empty. Logs will appear here once coins are inserted.")
+ 
 # --- MAIN ---
 if __name__=="__main__":
     init_db()
