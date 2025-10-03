@@ -5,8 +5,6 @@ import os
 import socket
 import sqlite3
 import time
-from flask import Flask, render_template_string
-import threading
 
 # -------- CONFIG ----------   
 BACKGROUND = "BACKGROUND.jpg"   # Background image
@@ -75,76 +73,6 @@ def log_coin(coins, added_time):
                 (coins, added_time, time.strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
-
-# --- FLASK SETUP ---
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "<h2>Welcome to Admin Panel</h2><p>Go to <a href='/logs'>View Logs</a></p>"
-
-@app.route("/logs")
-def logs():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT coins, added_time, timestamp FROM logs ORDER BY id DESC LIMIT 50")
-    rows = cur.fetchall()
-    conn.close()
-
-    # Render logs as HTML table with background
-    html = """
-    <html>
-    <head>
-        <title>Coin Insert Logs</title>
-        <style>
-            body {
-                background: url('/static/BACKGROUND.jpg') no-repeat center center fixed;
-                background-size: cover;
-                font-family: Arial, sans-serif;
-                color: white;
-                text-align: center;
-            }
-            h2 {
-                margin-top: 20px;
-                color: yellow;
-                text-shadow: 2px 2px 5px black;
-            }
-            table {
-                margin: 20px auto;
-                border-collapse: collapse;
-                background: rgba(0, 0, 0, 0.6);
-            }
-            th, td {
-                border: 1px solid white;
-                padding: 8px 15px;
-            }
-            th {
-                background: darkred;
-                color: red;
-            }
-            tr:nth-child(even) {
-                background: rgba(255, 255, 255, 0.1);
-            }
-        </style>
-    </head>
-    <body>
-        <h2>Coin Insert Logs</h2>
-        <table>
-            <tr><th>Coins</th><th>Added Time</th><th>Timestamp</th></tr>
-    """
-
-    for coins, added_time, ts in rows:
-        html += f"<tr><td>{coins}</td><td>{added_time//60} min</td><td>{ts}</td></tr>"
-
-    html += """
-        </table>
-    </body>
-    </html>
-    """
-    return html
-def run_flask():
-    print("Flask server starting...")
-    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
 class LockScreen:
     def __init__(self, root):
         self.root = root
@@ -300,7 +228,17 @@ class LockScreen:
         return {1: 60, 5: 600, 10: 1500, 20: 3600}
 
     # --- SETTINGS MENU ---
+        # --- SETTINGS MENU WITH PASSWORD ---
     def open_settings(self):
+        # Ask for password before opening settings
+        password = simpledialog.askstring("Authentication", "Enter admin password:", show="*")
+        
+        # You can change this hardcoded password (default: "admin123")
+        if password != "admin123":
+            messagebox.showerror("Access Denied", "Invalid password!")
+            return  # Stop if password is wrong
+
+        # If password correct → open settings window
         win = Toplevel(self.root)
         win.title("Settings")
         win.geometry("500x650")
@@ -330,7 +268,7 @@ class LockScreen:
             ("Set Warning Time", self.set_warning),
             ("Change PC Name", self.change_pc_name),
             ("Toggle Auto Shutdown", self.toggle_shutdown),
-            ("View Logs", self.view_logs)   # ✅ NEW BUTTON
+            ("View Logs", self.view_logs)
         ]
         for text, cmd in btns:
             tk.Button(win, text=text, width=25, command=cmd, bg="black", fg="white",
@@ -419,5 +357,6 @@ class LockScreen:
 # --- MAIN ---
 if __name__=="__main__":
     init_db()
-    threading.Thread(target=lambda: app.run(host="127.0.0.1",port=5000,debug=False),daemon=True).start()
-    root=tk.Tk(); app_gui=LockScreen(root); root.mainloop()
+    root = tk.Tk()
+    app_gui = LockScreen(root)
+    root.mainloop()
